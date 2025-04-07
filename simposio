@@ -1,0 +1,202 @@
+-- Criação do banco de dados
+CREATE DATABASE SimposioUniversidade;
+USE SimposioUniversidade;
+
+-- Tabela de Pessoas (organizadores, ministrantes, autores, membros de comissão)
+CREATE TABLE Pessoa (
+    id_pessoa INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    instituicao VARCHAR(100),
+    tipo ENUM('Organizador', 'Ministrante', 'Autor', 'Comissao') NOT NULL
+);
+
+-- Tabela de Temas
+CREATE TABLE Tema (
+    id_tema INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(50) NOT NULL,
+    descricao TEXT
+);
+
+-- Tabela de Simpósios
+CREATE TABLE Simposio (
+    id_simposio INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    data_inicio DATE NOT NULL,
+    data_fim DATE NOT NULL,
+    localizacao VARCHAR(100) NOT NULL
+);
+
+-- Tabela de Organizadores do Simpósio
+CREATE TABLE OrganizadorSimposio (
+    id_simposio INT,
+    id_pessoa INT,
+    PRIMARY KEY (id_simposio, id_pessoa),
+    FOREIGN KEY (id_simposio) REFERENCES Simposio(id_simposio),
+    FOREIGN KEY (id_pessoa) REFERENCES Pessoa(id_pessoa)
+);
+
+-- Tabela de MiniCursos
+CREATE TABLE MiniCurso (
+    id_minicurso INT AUTO_INCREMENT PRIMARY KEY,
+    id_simposio INT NOT NULL,
+    id_pessoa INT NOT NULL,
+    id_tema INT NOT NULL,
+    titulo VARCHAR(100) NOT NULL,
+    descricao TEXT,
+    carga_horaria INT NOT NULL,
+    data_horario DATETIME NOT NULL,
+    vagas INT NOT NULL,
+    FOREIGN KEY (id_simposio) REFERENCES Simposio(id_simposio),
+    FOREIGN KEY (id_pessoa) REFERENCES Pessoa(id_pessoa),
+    FOREIGN KEY (id_tema) REFERENCES Tema(id_tema)
+);
+
+-- Tabela de Artigos
+CREATE TABLE Artigo (
+    id_artigo INT AUTO_INCREMENT PRIMARY KEY,
+    id_tema INT NOT NULL,
+    titulo VARCHAR(200) NOT NULL,
+    resumo TEXT NOT NULL,
+    data_submissao DATETIME NOT NULL,
+    status ENUM('Submetido', 'Em revisão', 'Aceito', 'Rejeitado') DEFAULT 'Submetido',
+    arquivo VARCHAR(255) NOT NULL,
+    FOREIGN KEY (id_tema) REFERENCES Tema(id_tema)
+);
+
+-- Tabela de Autores dos Artigos
+CREATE TABLE AutorArtigo (
+    id_artigo INT,
+    id_pessoa INT,
+    ordem_autoria INT NOT NULL,
+    PRIMARY KEY (id_artigo, id_pessoa),
+    FOREIGN KEY (id_artigo) REFERENCES Artigo(id_artigo),
+    FOREIGN KEY (id_pessoa) REFERENCES Pessoa(id_pessoa)
+);
+
+-- Tabela de Comissões Científicas
+CREATE TABLE ComissaoCientifica (
+    id_comissao INT AUTO_INCREMENT PRIMARY KEY,
+    id_tema INT NOT NULL,
+    FOREIGN KEY (id_tema) REFERENCES Tema(id_tema)
+);
+
+-- Tabela de Membros da Comissão
+CREATE TABLE MembroComissao (
+    id_comissao INT,
+    id_pessoa INT,
+    PRIMARY KEY (id_comissao, id_pessoa),
+    FOREIGN KEY (id_comissao) REFERENCES ComissaoCientifica(id_comissao),
+    FOREIGN KEY (id_pessoa) REFERENCES Pessoa(id_pessoa)
+);
+
+-- Tabela de Pareceres
+CREATE TABLE Parecer (
+    id_parecer INT AUTO_INCREMENT PRIMARY KEY,
+    id_artigo INT NOT NULL,
+    id_pessoa INT NOT NULL,
+    data_avaliacao DATETIME NOT NULL,
+    comentarios TEXT NOT NULL,
+    recomendacao ENUM('Aceitar', 'Aceitar com modificações', 'Rejeitar') NOT NULL,
+    FOREIGN KEY (id_artigo) REFERENCES Artigo(id_artigo),
+    FOREIGN KEY (id_pessoa) REFERENCES Pessoa(id_pessoa)
+);
+
+-- Tabela de Inscrições
+CREATE TABLE Inscricao (
+    id_inscricao INT AUTO_INCREMENT PRIMARY KEY,
+    id_pessoa INT NOT NULL,
+    id_simposio INT NOT NULL,
+    data_inscricao DATETIME NOT NULL,
+    status_pagamento ENUM('Pendente', 'Pago', 'Cancelado') DEFAULT 'Pendente',
+    FOREIGN KEY (id_pessoa) REFERENCES Pessoa(id_pessoa),
+    FOREIGN KEY (id_simposio) REFERENCES Simposio(id_simposio)
+);
+
+-- Tabela de Inscrições em MiniCursos
+CREATE TABLE InscricaoMiniCurso (
+    id_inscricao INT,
+    id_minicurso INT,
+    PRIMARY KEY (id_inscricao, id_minicurso),
+    FOREIGN KEY (id_inscricao) REFERENCES Inscricao(id_inscricao),
+    FOREIGN KEY (id_minicurso) REFERENCES MiniCurso(id_minicurso)
+);
+
+
+-- Inserção de Temas
+INSERT INTO Tema (nome, descricao) VALUES 
+('Banco de Dados', 'Técnicas e tecnologias de armazenamento e recuperação de dados'),
+('Redes', 'Comunicação entre sistemas e protocolos de rede'),
+('Compiladores', 'Teoria e prática de construção de compiladores'),
+('Realidade Virtual', 'Tecnologias de imersão e interação virtual');
+
+-- Inserção de Pessoas
+INSERT INTO Pessoa (nome, email, instituicao, tipo) VALUES 
+('João Silva', 'joao.silva@email.com', 'Universidade A', 'Organizador'),
+('Maria Oliveira', 'maria.oliveira@email.com', 'Universidade B', 'Organizador'),
+('Carlos Souza', 'carlos.souza@email.com', 'Universidade C', 'Ministrante'),
+('Ana Pereira', 'ana.pereira@email.com', 'Universidade D', 'Ministrante'),
+('Pedro Costa', 'pedro.costa@email.com', 'Universidade A', 'Autor'),
+('Lucia Ferreira', 'lucia.ferreira@email.com', 'Universidade B', 'Autor'),
+('Marcos Rocha', 'marcos.rocha@email.com', 'Universidade C', 'Comissao'),
+('Juliana Alves', 'juliana.alves@email.com', 'Universidade D', 'Comissao'),
+('Fernando Lima', 'fernando.lima@email.com', 'Universidade A', 'Comissao'),
+('Patricia Santos', 'patricia.santos@email.com', 'Universidade B', 'Comissao');
+
+-- Inserção de Simpósio
+INSERT INTO Simposio (nome, data_inicio, data_fim, localizacao) VALUES 
+('V Simpósio de Tecnologia da Informação', '2023-11-15', '2023-11-18', 'Auditório Central - Universidade A');
+
+-- Inserção de Organizadores
+INSERT INTO OrganizadorSimposio (id_simposio, id_pessoa) VALUES 
+(1, 1), (1, 2);
+
+-- Inserção de Comissões Científicas
+INSERT INTO ComissaoCientifica (id_tema) VALUES 
+(1), (2), (3), (4);
+
+-- Inserção de Membros da Comissão
+INSERT INTO MembroComissao (id_comissao, id_pessoa) VALUES 
+(1, 7), (1, 8),  -- Banco de Dados
+(2, 9),          -- Redes
+(3, 10), (3, 7), -- Compiladores
+(4, 8), (4, 9);  -- Realidade Virtual
+
+-- Inserção de MiniCursos
+INSERT INTO MiniCurso (id_simposio, id_pessoa, id_tema, titulo, descricao, carga_horaria, data_horario, vagas) VALUES 
+(1, 3, 1, 'NoSQL na Prática', 'Curso prático sobre bancos de dados não relacionais', 8, '2023-11-15 09:00:00', 30),
+(1, 4, 2, 'Segurança em Redes', 'Técnicas avançadas de proteção em redes de computadores', 6, '2023-11-16 14:00:00', 25);
+
+-- Inserção de Artigos
+INSERT INTO Artigo (id_tema, titulo, resumo, data_submissao, status, arquivo) VALUES 
+(1, 'Otimização de Consultas em Bancos de Dados Distribuídos', 'Este artigo apresenta técnicas para...', '2023-09-10 15:30:00', 'Em revisão', 'artigo1.pdf'),
+(2, 'Novo Protocolo para Redes de Sensores Sem Fio', 'Proposta de um novo protocolo...', '2023-09-12 10:15:00', 'Submetido', 'artigo2.pdf'),
+(1, 'Análise Comparativa de Bancos de Dados NoSQL', 'Comparativo entre MongoDB, Cassandra e...', '2023-09-05 08:45:00', 'Aceito', 'artigo3.pdf');
+
+-- Inserção de Autores dos Artigos
+INSERT INTO AutorArtigo (id_artigo, id_pessoa, ordem_autoria) VALUES 
+(1, 5, 1),
+(1, 6, 2),
+(2, 6, 1),
+(3, 5, 1);
+
+-- Inserção de Pareceres
+INSERT INTO Parecer (id_artigo, id_pessoa, data_avaliacao, comentarios, recomendacao) VALUES 
+(1, 7, '2023-10-01 14:00:00', 'Artigo bem escrito, mas precisa de mais experimentos para comprovar as hipóteses.', 'Aceitar com modificações'),
+(3, 8, '2023-09-20 10:30:00', 'Excelente trabalho comparativo, metodologia sólida e resultados relevantes.', 'Aceitar');
+
+-- Inserção de Inscrições
+INSERT INTO Inscricao (id_pessoa, id_simposio, data_inscricao, status_pagamento) VALUES 
+(5, 1, '2023-10-05 09:15:00', 'Pago'),
+(6, 1, '2023-10-06 11:30:00', 'Pago'),
+(7, 1, '2023-10-07 14:45:00', 'Pendente'),
+(8, 1, '2023-10-08 16:20:00', 'Pago');
+
+-- Inserção em MiniCursos
+INSERT INTO InscricaoMiniCurso (id_inscricao, id_minicurso) VALUES 
+(1, 1),
+(2, 1),
+(2, 2),
+(4, 2);
+
+

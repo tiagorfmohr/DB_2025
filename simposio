@@ -40,7 +40,6 @@ CREATE TABLE OrganizadorSimposio (
 CREATE TABLE MiniCurso (
     id_minicurso INT AUTO_INCREMENT PRIMARY KEY,
     id_simposio INT NOT NULL,
-    id_pessoa INT NOT NULL,
     id_tema INT NOT NULL,
     titulo VARCHAR(100) NOT NULL,
     descricao TEXT,
@@ -48,7 +47,6 @@ CREATE TABLE MiniCurso (
     data_horario DATETIME NOT NULL,
     vagas INT NOT NULL,
     FOREIGN KEY (id_simposio) REFERENCES Simposio(id_simposio),
-    FOREIGN KEY (id_pessoa) REFERENCES Pessoa(id_pessoa),
     FOREIGN KEY (id_tema) REFERENCES Tema(id_tema)
 );
 
@@ -83,9 +81,9 @@ CREATE TABLE ComissaoCientifica (
 
 -- Tabela de Membros da Comissão
 CREATE TABLE MembroComissao (
+	id_membrocomissao INT auto_increment primary key,
     id_comissao INT,
     id_pessoa INT,
-    PRIMARY KEY (id_comissao, id_pessoa),
     FOREIGN KEY (id_comissao) REFERENCES ComissaoCientifica(id_comissao),
     FOREIGN KEY (id_pessoa) REFERENCES Pessoa(id_pessoa)
 );
@@ -94,12 +92,12 @@ CREATE TABLE MembroComissao (
 CREATE TABLE Parecer (
     id_parecer INT AUTO_INCREMENT PRIMARY KEY,
     id_artigo INT NOT NULL,
-    id_pessoa INT NOT NULL,
+    id_membrocomissao INT NOT NULL,
     data_avaliacao DATETIME NOT NULL,
     comentarios TEXT NOT NULL,
     recomendacao ENUM('Aceitar', 'Aceitar com modificações', 'Rejeitar') NOT NULL,
     FOREIGN KEY (id_artigo) REFERENCES Artigo(id_artigo),
-    FOREIGN KEY (id_pessoa) REFERENCES Pessoa(id_pessoa)
+    foreign key (id_membrocomissao) references MembroComissao(id_membrocomissao)
 );
 
 -- Tabela de Inscrições
@@ -107,96 +105,76 @@ CREATE TABLE Inscricao (
     id_inscricao INT AUTO_INCREMENT PRIMARY KEY,
     id_pessoa INT NOT NULL,
     id_simposio INT NOT NULL,
+    id_minicurso INT,
     data_inscricao DATETIME NOT NULL,
     status_pagamento ENUM('Pendente', 'Pago', 'Cancelado') DEFAULT 'Pendente',
     FOREIGN KEY (id_pessoa) REFERENCES Pessoa(id_pessoa),
-    FOREIGN KEY (id_simposio) REFERENCES Simposio(id_simposio)
-);
-
--- Tabela de Inscrições em MiniCursos
-CREATE TABLE InscricaoMiniCurso (
-    id_inscricao INT,
-    id_minicurso INT,
-    PRIMARY KEY (id_inscricao, id_minicurso),
-    FOREIGN KEY (id_inscricao) REFERENCES Inscricao(id_inscricao),
+    FOREIGN KEY (id_simposio) REFERENCES Simposio(id_simposio),
     FOREIGN KEY (id_minicurso) REFERENCES MiniCurso(id_minicurso)
 );
 
+-- Inserir dados na tabela Pessoa
+INSERT INTO Pessoa (nome, email, instituicao, tipo) VALUES
+('João Silva', 'joao.silva@email.com', 'Universidade X', 'Organizador'),
+('Maria Oliveira', 'maria.oliveira@email.com', 'Universidade Y', 'Ministrante'),
+('Carlos Souza', 'carlos.souza@email.com', 'Universidade Z', 'Autor'),
+('Ana Pereira', 'ana.pereira@email.com', 'Universidade W', 'Comissao'),
+('Rafael Santos', 'rafael.santos@email.com', 'Universidade X', 'Autor');
 
--- Inserção de Temas
-INSERT INTO Tema (nome, descricao) VALUES 
-('Banco de Dados', 'Técnicas e tecnologias de armazenamento e recuperação de dados'),
-('Redes', 'Comunicação entre sistemas e protocolos de rede'),
-('Compiladores', 'Teoria e prática de construção de compiladores'),
-('Realidade Virtual', 'Tecnologias de imersão e interação virtual');
+-- Inserir dados na tabela Tema
+INSERT INTO Tema (nome, descricao) VALUES
+('Tecnologia da Informação', 'Discussão sobre as inovações no setor de TI'),
+('Ciências Sociais', 'Estudo das dinâmicas sociais e seus impactos na sociedade'),
+('Inteligência Artificial', 'Avanços e desafios da Inteligência Artificial no século XXI');
 
--- Inserção de Pessoas
-INSERT INTO Pessoa (nome, email, instituicao, tipo) VALUES 
-('João Silva', 'joao.silva@email.com', 'Universidade A', 'Organizador'),
-('Maria Oliveira', 'maria.oliveira@email.com', 'Universidade B', 'Organizador'),
-('Carlos Souza', 'carlos.souza@email.com', 'Universidade C', 'Ministrante'),
-('Ana Pereira', 'ana.pereira@email.com', 'Universidade D', 'Ministrante'),
-('Pedro Costa', 'pedro.costa@email.com', 'Universidade A', 'Autor'),
-('Lucia Ferreira', 'lucia.ferreira@email.com', 'Universidade B', 'Autor'),
-('Marcos Rocha', 'marcos.rocha@email.com', 'Universidade C', 'Comissao'),
-('Juliana Alves', 'juliana.alves@email.com', 'Universidade D', 'Comissao'),
-('Fernando Lima', 'fernando.lima@email.com', 'Universidade A', 'Comissao'),
-('Patricia Santos', 'patricia.santos@email.com', 'Universidade B', 'Comissao');
+-- Inserir dados na tabela Simposio
+INSERT INTO Simposio (nome, data_inicio, data_fim, localizacao) VALUES
+('Simpósio de Tecnologia 2025', '2025-05-10', '2025-05-12', 'Centro de Convenções - São Paulo'),
+('Simpósio de Ciências Sociais 2025', '2025-06-15', '2025-06-18', 'Auditório da Universidade Y - Rio de Janeiro');
 
--- Inserção de Simpósio
-INSERT INTO Simposio (nome, data_inicio, data_fim, localizacao) VALUES 
-('V Simpósio de Tecnologia da Informação', '2023-11-15', '2023-11-18', 'Auditório Central - Universidade A');
+-- Inserir dados na tabela OrganizadorSimposio
+INSERT INTO OrganizadorSimposio (id_simposio, id_pessoa) VALUES
+(1, 1), -- João Silva organiza o Simpósio de Tecnologia 2025
+(2, 1); -- João Silva organiza o Simpósio de Ciências Sociais 2025
 
--- Inserção de Organizadores
-INSERT INTO OrganizadorSimposio (id_simposio, id_pessoa) VALUES 
-(1, 1), (1, 2);
+-- Inserir dados na tabela MiniCurso
+INSERT INTO MiniCurso (id_simposio, id_tema, titulo, descricao, carga_horaria, data_horario, vagas) VALUES
+(1, 1, 'Introdução ao Big Data', 'Fundamentos e práticas sobre Big Data', 4, '2025-05-10 10:00:00', 30),
+(1, 3, 'A Era da Inteligência Artificial', 'Como a IA está moldando o futuro', 3, '2025-05-10 14:00:00', 25),
+(2, 2, 'Análise de Comportamento Social', 'Estudo de comportamento social através de dados', 3, '2025-06-15 09:00:00', 20);
 
--- Inserção de Comissões Científicas
-INSERT INTO ComissaoCientifica (id_tema) VALUES 
-(1), (2), (3), (4);
+-- Inserir dados na tabela Artigo
+INSERT INTO Artigo (id_tema, titulo, resumo, data_submissao, arquivo) VALUES
+(1, 'A evolução da TI no Brasil', 'Este artigo aborda o crescimento da tecnologia da informação no Brasil nos últimos 20 anos', '2025-04-01 10:00:00', 'artigo_evolucao_ti.pdf'),
+(2, 'Impacto das redes sociais nas relações sociais', 'Análise de como as redes sociais influenciam as relações interpessoais', '2025-04-05 15:00:00', 'artigo_redes_sociais.pdf'),
+(3, 'Inteligência Artificial e a ética', 'Discussão sobre as questões éticas envolvendo IA', '2025-04-07 12:00:00', 'artigo_ia_etica.pdf');
 
--- Inserção de Membros da Comissão
-INSERT INTO MembroComissao (id_comissao, id_pessoa) VALUES 
-(1, 7), (1, 8),  -- Banco de Dados
-(2, 9),          -- Redes
-(3, 10), (3, 7), -- Compiladores
-(4, 8), (4, 9);  -- Realidade Virtual
+-- Inserir dados na tabela AutorArtigo
+INSERT INTO AutorArtigo (id_artigo, id_pessoa, ordem_autoria) VALUES
+(1, 3, 1), -- Carlos Souza é autor do artigo 'A evolução da TI no Brasil'
+(2, 4, 1), -- Ana Pereira é autora do artigo 'Impacto das redes sociais nas relações sociais'
+(3, 5, 1); -- Rafael Santos é autor do artigo 'Inteligência Artificial e a ética'
 
--- Inserção de MiniCursos
-INSERT INTO MiniCurso (id_simposio, id_pessoa, id_tema, titulo, descricao, carga_horaria, data_horario, vagas) VALUES 
-(1, 3, 1, 'NoSQL na Prática', 'Curso prático sobre bancos de dados não relacionais', 8, '2023-11-15 09:00:00', 30),
-(1, 4, 2, 'Segurança em Redes', 'Técnicas avançadas de proteção em redes de computadores', 6, '2023-11-16 14:00:00', 25);
+-- Inserir dados na tabela ComissaoCientifica
+INSERT INTO ComissaoCientifica (id_tema) VALUES
+(1), -- Comissão Científica para Tecnologia da Informação
+(2), -- Comissão Científica para Ciências Sociais
+(3); -- Comissão Científica para Inteligência Artificial
 
--- Inserção de Artigos
-INSERT INTO Artigo (id_tema, titulo, resumo, data_submissao, status, arquivo) VALUES 
-(1, 'Otimização de Consultas em Bancos de Dados Distribuídos', 'Este artigo apresenta técnicas para...', '2023-09-10 15:30:00', 'Em revisão', 'artigo1.pdf'),
-(2, 'Novo Protocolo para Redes de Sensores Sem Fio', 'Proposta de um novo protocolo...', '2023-09-12 10:15:00', 'Submetido', 'artigo2.pdf'),
-(1, 'Análise Comparativa de Bancos de Dados NoSQL', 'Comparativo entre MongoDB, Cassandra e...', '2023-09-05 08:45:00', 'Aceito', 'artigo3.pdf');
+-- Inserir dados na tabela MembroComissao
+INSERT INTO MembroComissao (id_comissao, id_pessoa) VALUES
+(1, 2), -- Maria Oliveira é membro da Comissão Científica de Tecnologia da Informação
+(2, 4), -- Ana Pereira é membro da Comissão Científica de Ciências Sociais
+(3, 2); -- Maria Oliveira é membro da Comissão Científica de Inteligência Artificial
 
--- Inserção de Autores dos Artigos
-INSERT INTO AutorArtigo (id_artigo, id_pessoa, ordem_autoria) VALUES 
-(1, 5, 1),
-(1, 6, 2),
-(2, 6, 1),
-(3, 5, 1);
+-- Inserir dados na tabela Parecer
+INSERT INTO Parecer (id_artigo, id_membrocomissao, data_avaliacao, comentarios, recomendacao) VALUES
+(1, 1, '2025-04-03 14:00:00', 'Artigo bem escrito, mas precisa de mais dados empíricos.', 'Aceitar com modificações'),
+(2, 2, '2025-04-06 16:00:00', 'Bom artigo, mas precisa de mais referências acadêmicas.', 'Aceitar com modificações'),
+(3, 3, '2025-04-07 18:00:00', 'Artigo muito relevante, ótimo trabalho!', 'Aceitar');
 
--- Inserção de Pareceres
-INSERT INTO Parecer (id_artigo, id_pessoa, data_avaliacao, comentarios, recomendacao) VALUES 
-(1, 7, '2023-10-01 14:00:00', 'Artigo bem escrito, mas precisa de mais experimentos para comprovar as hipóteses.', 'Aceitar com modificações'),
-(3, 8, '2023-09-20 10:30:00', 'Excelente trabalho comparativo, metodologia sólida e resultados relevantes.', 'Aceitar');
-
--- Inserção de Inscrições
-INSERT INTO Inscricao (id_pessoa, id_simposio, data_inscricao, status_pagamento) VALUES 
-(5, 1, '2023-10-05 09:15:00', 'Pago'),
-(6, 1, '2023-10-06 11:30:00', 'Pago'),
-(7, 1, '2023-10-07 14:45:00', 'Pendente'),
-(8, 1, '2023-10-08 16:20:00', 'Pago');
-
--- Inserção em MiniCursos
-INSERT INTO InscricaoMiniCurso (id_inscricao, id_minicurso) VALUES 
-(1, 1),
-(2, 1),
-(2, 2),
-(4, 2);
-
-
+-- Inserir dados na tabela Inscricao
+INSERT INTO Inscricao (id_pessoa, id_simposio, id_minicurso, data_inscricao, status_pagamento) VALUES
+(3, 1, 1, '2025-04-01 11:00:00', 'Pendente'), -- Carlos Souza se inscreveu no Simpósio de Tecnologia 2025 no minicurso 'Introdução ao Big Data'
+(4, 2, 3, '2025-04-05 10:00:00', 'Pago'), -- Ana Pereira se inscreveu no Simpósio de Ciências Sociais 2025 no minicurso 'Análise de Comportamento Social'
+(5, 1, 2, '2025-04-06 09:30:00', 'Pendente'); -- Rafael Santos se inscreveu no Simpósio de Tecnologia 2025 no minicurso 'A Era da Inteligência Artificial'

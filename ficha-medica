@@ -1,0 +1,88 @@
+CREATE DATABASE consultorio_medico;
+
+USE consultorio_medico;
+-- Tabela Paciente
+CREATE TABLE Paciente (
+    paciente_id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL,
+    numero_paciente VARCHAR(50) UNIQUE, -- Se o número do paciente for um identificador único externo
+    data_nascimento DATE,
+    sexo VARCHAR(10),
+    estado_civil VARCHAR(50),
+    rg VARCHAR(20),
+    endereco VARCHAR(255),
+    telefone VARCHAR(20),
+    convenio VARCHAR(100)
+);
+
+-- Tabela Médico (Adição para melhor normalização e escalabilidade)
+CREATE TABLE Medico (
+    medico_id INT AUTO_INCREMENT PRIMARY KEY,
+    nome_medico VARCHAR(255) NOT NULL,
+    crm VARCHAR(20) UNIQUE,
+    especialidade VARCHAR(100)
+    -- Outros detalhes do médico, como telefone, endereço do consultório, etc.
+);
+
+
+-- Tabela Consulta
+CREATE TABLE Consulta (
+    consulta_id INT AUTO_INCREMENT PRIMARY KEY,
+    paciente_id INT NOT NULL,
+    medico_id INT, -- Referência à tabela Medico
+    data_consulta DATE NOT NULL,
+    diagnostico TEXT,
+    FOREIGN KEY (paciente_id) REFERENCES Paciente(paciente_id),
+    FOREIGN KEY (medico_id) REFERENCES Medico(medico_id)
+);
+
+-- Tabela Exame
+CREATE TABLE Exame (
+    exame_id INT AUTO_INCREMENT PRIMARY KEY,
+    consulta_id INT NOT NULL,
+    nome_exame VARCHAR(255) NOT NULL,
+    data_exame DATE,
+    -- campo para resultado, etc.
+    FOREIGN KEY (consulta_id) REFERENCES Consulta(consulta_id)
+);
+
+
+-- Criar o banco de dados se ele ainda não existir
+CREATE DATABASE IF NOT EXISTS consultorio_medico;
+
+-- Selecionar o banco de dados para todas as operações seguintes
+USE consultorio_medico;
+
+-- Inserindo Dados na Tabela Paciente
+INSERT INTO Paciente (nome, numero_paciente, data_nascimento, sexo, estado_civil, rg, endereco, telefone, convenio) VALUES
+('Ana Silva', 'P001', '1985-03-15', 'F', 'Casada', '12345678-9', 'Rua das Flores, 123, Centro, Videira, SC', '49988776655', 'Unimed'),
+('Bruno Costa', 'P002', '1992-11-22', 'M', 'Solteiro', '98765432-1', 'Avenida Principal, 456, Bairro Novo, Videira, SC', '49977665544', 'Bradesco Saúde'),
+('Carla Souza', 'P003', '1970-07-01', 'F', 'Viúva', '11223344-5', 'Travessa da Paz, 78, Loteamento, Videira, SC', '49966554433', 'SUS');
+
+-- Inserindo Dados na Tabela Medico
+INSERT INTO Medico (nome_medico, crm, especialidade) VALUES
+('Dr. João Santos', 'CRM/SC 12345', 'Clínico Geral'),
+('Dra. Maria Oliveira', 'CRM/SC 67890', 'Pediatra'),
+('Dr. Pedro Almeida', 'CRM/SC 13579', 'Cardiologista');
+
+-- Inserindo Dados na Tabela Consulta
+-- Assumimos que os paciente_id e medico_id são sequenciais (1, 2, 3...)
+INSERT INTO Consulta (paciente_id, medico_id, data_consulta, diagnostico) VALUES
+(1, 1, '2025-06-01', 'Dor de cabeça e febre. Prescrito analgésico e repouso.'), -- Ana Silva (1) com Dr. João (1)
+(2, 2, '2025-06-02', 'Consulta de rotina. Desenvolvimento normal para a idade.'), -- Bruno Costa (2) com Dra. Maria (2)
+(1, 3, '2025-06-05', 'Check-up cardiológico. Exames solicitados.'), -- Ana Silva (1) com Dr. Pedro (3)
+(3, 1, '2025-06-08', 'Revisão de medicação. Pressão arterial controlada.'); -- Carla Souza (3) com Dr. João (1)
+
+-- Inserindo Dados na Tabela Exame
+-- Assumimos que os consulta_id são sequenciais (1, 2, 3...) para as consultas que acabamos de inserir
+INSERT INTO Exame (consulta_id, nome_exame, data_exame) VALUES
+(1, 'Hemograma Completo', '2025-06-01'), -- Para a primeira consulta da Ana Silva (consulta_id 1)
+(3, 'Eletrocardiograma (ECG)', '2025-06-06'), -- Para a consulta da Ana Silva com o cardiologista (consulta_id 3)
+(3, 'Teste Ergométrico', '2025-06-07'), -- Para a consulta da Ana Silva com o cardiologista (consulta_id 3)
+(2, 'Exame de Fezes', '2025-06-03'); -- Para a consulta do Bruno Costa (consulta_id 2)
+
+-- Opcional: Comandos SELECT para verificar os dados inseridos
+-- SELECT * FROM Paciente;
+-- SELECT * FROM Medico;
+-- SELECT * FROM Consulta;
+-- SELECT * FROM Exame;

@@ -1,9 +1,5 @@
--- =====================================================================
--- PASSO 1: ESTRUTURA DO BANCO DE DADOS
--- Criação do banco de dados e de todas as tabelas.
--- =====================================================================
-
-CREATE DATABASE IF NOT EXISTS ControleCinemas;
+-- Criação do banco de dados
+CREATE DATABASE ControleCinemas;
 USE ControleCinemas;
 
 -- Tabela de Cinemas
@@ -23,7 +19,7 @@ CREATE TABLE Genero (
     descricao TEXT
 );
 
--- Tabela de Pessoas (Atores/Diretores)
+-- Tabela de Atores/Diretores (pessoa pode ser ambos)
 CREATE TABLE Pessoa (
     pessoa_id INT PRIMARY KEY AUTO_INCREMENT,
     nome VARCHAR(100) NOT NULL,
@@ -32,7 +28,7 @@ CREATE TABLE Pessoa (
     tipo ENUM('Ator', 'Diretor', 'Ambos') NOT NULL
 );
 
--- Tabela de Filmes (Depende da tabela Pessoa)
+-- Tabela de Filmes
 CREATE TABLE Filme (
     filme_id INT PRIMARY KEY AUTO_INCREMENT,
     titulo_original VARCHAR(100) NOT NULL,
@@ -44,7 +40,26 @@ CREATE TABLE Filme (
     FOREIGN KEY (diretor_id) REFERENCES Pessoa(pessoa_id)
 );
 
--- Tabela de Salas (Depende de Cinema)
+-- Tabela de relação Filme-Gênero (M:N)
+CREATE TABLE FilmeGenero (
+    filme_id INT,
+    genero_id INT,
+    PRIMARY KEY (filme_id, genero_id),
+    FOREIGN KEY (filme_id) REFERENCES Filme(filme_id),
+    FOREIGN KEY (genero_id) REFERENCES Genero(genero_id)
+);
+
+-- Tabela de Elenco (Atores em Filmes)
+CREATE TABLE Elenco (
+    filme_id INT,
+    ator_id INT,
+    personagem VARCHAR(100),
+    PRIMARY KEY (filme_id, ator_id),
+    FOREIGN KEY (filme_id) REFERENCES Filme(filme_id),
+    FOREIGN KEY (ator_id) REFERENCES Pessoa(pessoa_id)
+);
+
+-- Tabela de Salas
 CREATE TABLE Sala (
     sala_id INT PRIMARY KEY AUTO_INCREMENT,
     cinema_id INT NOT NULL,
@@ -55,7 +70,7 @@ CREATE TABLE Sala (
     FOREIGN KEY (cinema_id) REFERENCES Cinema(cinema_id)
 );
 
--- Tabela de Sessões (Depende de Filme e Sala)
+-- Tabela de Sessões
 CREATE TABLE Sessao (
     sessao_id INT PRIMARY KEY AUTO_INCREMENT,
     filme_id INT NOT NULL,
@@ -68,41 +83,15 @@ CREATE TABLE Sessao (
     FOREIGN KEY (sala_id) REFERENCES Sala(sala_id)
 );
 
--- Tabela de relação Filme-Gênero (Depende de Filme e Genero)
-CREATE TABLE FilmeGenero (
-    filme_id INT,
-    genero_id INT,
-    PRIMARY KEY (filme_id, genero_id),
-    FOREIGN KEY (filme_id) REFERENCES Filme(filme_id),
-    FOREIGN KEY (genero_id) REFERENCES Genero(genero_id)
-);
+-- Inserção de dados nas tabelas
 
--- Tabela de Elenco (Depende de Filme e Pessoa)
-CREATE TABLE Elenco (
-    filme_id INT,
-    ator_id INT,
-    personagem VARCHAR(100),
-    PRIMARY KEY (filme_id, ator_id),
-    FOREIGN KEY (filme_id) REFERENCES Filme(filme_id),
-    FOREIGN KEY (ator_id) REFERENCES Pessoa(pessoa_id)
-);
-
-
--- =====================================================================
--- PASSO 2: INSERÇÃO DOS DADOS (NA ORDEM CORRETA DE DEPENDÊNCIA)
--- !! IMPORTANTE !!
--- ESTA SEÇÃO DEVE SER EXECUTADA NA ORDEM EXATA EM QUE APARECE.
--- Tentar inserir "Sessões" antes de "Salas", por exemplo, causará
--- um erro de chave estrangeira (foreign key).
--- Execute do início ao fim para garantir que as dependências sejam criadas primeiro.
--- =====================================================================
-
--- 1. Dados que não dependem de ninguém (Pais)
+-- Cinemas
 INSERT INTO Cinema (nome_fantasia, endereco, telefone, email) VALUES
 ('CineArt Iguatemi', 'Av. João Wallig, 1800 - Porto Alegre', '(51) 3248-5400', 'iguatemi@cineart.com.br'),
 ('CineArt Barra', 'Av. Diário de Notícias, 300 - Porto Alegre', '(51) 3248-5500', 'barra@cineart.com.br'),
 ('Cinemark Bourbon', 'Rua Turiassu, 2100 - Porto Alegre', '(51) 4003-5212', 'bourbon@cinemark.com.br');
 
+-- Gêneros
 INSERT INTO Genero (nome, descricao) VALUES
 ('Ação', 'Filmes com muita ação e cenas de luta'),
 ('Drama', 'Filmes dramáticos e emocionantes'),
@@ -110,52 +99,63 @@ INSERT INTO Genero (nome, descricao) VALUES
 ('Ficção Científica', 'Filmes com elementos científicos futuristas'),
 ('Terror', 'Filmes assustadores');
 
+-- Pessoas (Atores e Diretores)
 INSERT INTO Pessoa (nome, nacionalidade, data_nascimento, tipo) VALUES
 ('Christopher Nolan', 'Britânico', '1970-07-30', 'Diretor'),
 ('Leonardo DiCaprio', 'Americano', '1974-11-11', 'Ator'),
 ('Tom Hardy', 'Britânico', '1977-09-15', 'Ator'),
 ('Quentin Tarantino', 'Americano', '1963-03-27', 'Ambos'),
 ('Brad Pitt', 'Americano', '1963-12-18', 'Ator'),
-('Margot Robbie', 'Australiana', '1990-07-02', 'Ator'),
-('Martin Scorsese', 'Americano', '1942-11-17', 'Diretor');
+('Margot Robbie', 'Australiana', '1990-07-02', 'Ator');
 
--- 2. Dados que dependem do primeiro grupo (Filhos diretos)
+-- Filmes
 INSERT INTO Filme (titulo_original, titulo_portugues, duracao_minutos, data_lancamento, classificacao, diretor_id) VALUES
 ('Inception', 'A Origem', 148, '2010-07-16', '12 anos', 1),
 ('Once Upon a Time in Hollywood', 'Era uma vez em... Hollywood', 161, '2019-08-15', '16 anos', 4),
-('The Wolf of Wall Street', 'O Lobo de Wall Street', 180, '2013-12-25', '18 anos', 7);
+('The Wolf of Wall Street', 'O Lobo de Wall Street', 180, '2013-12-25', '18 anos', NULL);
 
-INSERT INTO Sala (cinema_id, numero, capacidade, tipo_tela, tipo_som) VALUES
-(1, 1, 120, 'IMAX', 'Dolby Atmos'), (1, 2, 80, 'Digital', '5.1'), (1, 3, 60, '3D', '5.1'),
-(2, 1, 100, 'Digital', '7.1'), (2, 2, 50, '3D', '5.1'),
-(3, 1, 150, 'IMAX', 'Dolby Atmos'), (3, 2, 90, 'Digital', '7.1'), (3, 3, 70, '3D', '5.1'), (3, 4, 40, 'VIP', '7.1');
+-- Atualizando diretor para O Lobo de Wall Street (não estava na lista inicial)
+INSERT INTO Pessoa (nome, nacionalidade, data_nascimento, tipo) VALUES
+('Martin Scorsese', 'Americano', '1942-11-17', 'Diretor');
 
--- 3. Dados de ligação (Netos, que dependem do segundo grupo)
+UPDATE Filme SET diretor_id = 7 WHERE filme_id = 3;
+
+-- Filme-Gênero
 INSERT INTO FilmeGenero (filme_id, genero_id) VALUES
-(1, 1), (1, 4),
-(2, 1), (2, 2), (2, 3),
-(3, 2), (3, 3);
+(1, 1), (1, 4), -- A Origem: Ação e Ficção Científica
+(2, 1), (2, 2), (2, 3), -- Era uma vez em Hollywood: Ação, Drama e Comédia
+(3, 2), (3, 3); -- O Lobo de Wall Street: Drama e Comédia
 
+-- Elenco
 INSERT INTO Elenco (filme_id, ator_id, personagem) VALUES
-(1, 2, 'Dom Cobb'), (1, 3, 'Eames'),
-(2, 5, 'Cliff Booth'), (2, 2, 'Rick Dalton'), (2, 6, 'Sharon Tate'),
-(3, 2, 'Jordan Belfort'), (3, 6, 'Naomi Lapaglia');
+(1, 2, 'Dom Cobb'), -- Leonardo DiCaprio em A Origem
+(1, 3, 'Eames'),    -- Tom Hardy em A Origem
+(2, 5, 'Cliff Booth'), -- Brad Pitt em Era uma vez em Hollywood
+(2, 2, 'Rick Dalton'), -- Leonardo DiCaprio em Era uma vez em Hollywood
+(2, 6, 'Sharon Tate'), -- Margot Robbie em Era uma vez em Hollywood
+(3, 2, 'Jordan Belfort'), -- Leonardo DiCaprio em O Lobo de Wall Street
+(3, 6, 'Naomi Lapaglia'); -- Margot Robbie em O Lobo de Wall Street
 
--- 4. Dados de eventos (A última camada de dependência)
--- ESTE COMANDO SÓ FUNCIONARÁ se os Filmes e as Salas já tiverem sido inseridos nos passos anteriores.
+-- Salas
+INSERT INTO Sala (cinema_id, numero, capacidade, tipo_tela, tipo_som) VALUES
+(1, 1, 120, 'IMAX', 'Dolby Atmos'),
+(1, 2, 80, 'Digital', '5.1'),
+(1, 3, 60, '3D', '5.1'),
+(2, 1, 100, 'Digital', '7.1'),
+(2, 2, 50, '3D', '5.1'),
+(3, 1, 150, 'IMAX', 'Dolby Atmos'),
+(3, 2, 90, 'Digital', '7.1'),
+(3, 3, 70, '3D', '5.1'),
+(3, 4, 40, 'VIP', '7.1');
+
+-- Sessões
 INSERT INTO Sessao (filme_id, sala_id, data_hora, valor_ingresso, idioma, tipo_exibicao) VALUES
-(1, 1, '2025-07-10 14:00:00', 35.00, 'Legendado', 'IMAX'),
-(1, 3, '2025-07-10 16:30:00', 28.00, 'Dublado', '3D'),
-(2, 4, '2025-07-11 19:00:00', 25.00, 'Legendado', 'Digital'),
-(2, 6, '2025-07-11 21:30:00', 30.00, 'Legendado', 'IMAX'),
-(3, 8, '2025-07-12 18:00:00', 22.00, 'Dublado', '3D'),
-(3, 9, '2025-07-12 21:00:00', 40.00, 'Legendado', 'VIP');
-
-
--- =====================================================================
--- PASSO 3: CONSULTAS DE VERIFICAÇÃO
--- Use estas consultas para confirmar que tudo foi inserido corretamente.
--- =====================================================================
+(1, 1, '2023-06-20 14:00:00', 35.00, 'Legendado', 'IMAX'),
+(1, 3, '2023-06-20 16:30:00', 28.00, 'Dublado', '3D'),
+(2, 4, '2023-06-20 19:00:00', 25.00, 'Legendado', 'Digital'),
+(2, 6, '2023-06-20 21:30:00', 30.00, 'Legendado', 'IMAX'),
+(3, 8, '2023-06-20 18:00:00', 22.00, 'Dublado', '3D'),
+(3, 9, '2023-06-20 21:00:00', 40.00, 'Legendado', 'VIP');
 
 -- 1. Listar todas as sessões de um cinema específico com detalhes do filme
 SELECT 
@@ -218,65 +218,3 @@ JOIN Genero g ON fg.genero_id = g.genero_id
 GROUP BY f.filme_id
 HAVING qtd_generos > 1
 ORDER BY qtd_generos DESC;
-
-
--- =====================================================================
--- PASSO 4: CONSULTAS ADICIONAIS E ANÁLISES
--- Novas consultas para explorar mais a fundo os dados.
--- =====================================================================
-
--- 6. Listar todos os filmes de um ator específico e seus personagens
-SELECT
-    p.nome AS ator,
-    f.titulo_portugues AS filme,
-    e.personagem
-FROM Elenco e
-JOIN Pessoa p ON e.ator_id = p.pessoa_id
-JOIN Filme f ON e.filme_id = f.filme_id
-WHERE p.nome = 'Leonardo DiCaprio'
-ORDER BY f.data_lancamento;
-
--- 7. Calcular o total de assentos (capacidade) por cinema
-SELECT
-    c.nome_fantasia AS cinema,
-    SUM(s.capacidade) AS total_de_assentos
-FROM Sala s
-JOIN Cinema c ON s.cinema_id = c.cinema_id
-GROUP BY c.nome_fantasia
-ORDER BY total_de_assentos DESC;
-
--- 8. Encontrar o preço médio do ingresso por tipo de exibição (IMAX, 3D, etc.)
-SELECT
-    tipo_exibicao,
-    AVG(valor_ingresso) AS preco_medio
-FROM Sessao
-GROUP BY tipo_exibicao
-ORDER BY preco_medio DESC;
-
--- 9. Listar artistas que são tanto atores quanto diretores
-SELECT
-    nome,
-    nacionalidade
-FROM Pessoa
-WHERE tipo = 'Ambos';
-
--- 10. Mostrar os filmes em cartaz em um determinado dia
-SELECT
-    c.nome_fantasia AS cinema,
-    s.numero AS sala,
-    f.titulo_portugues AS filme,
-    DATE_FORMAT(ss.data_hora, '%H:%i') AS horario
-FROM Sessao ss
-JOIN Sala s ON ss.sala_id = s.sala_id
-JOIN Cinema c ON s.cinema_id = c.cinema_id
-JOIN Filme f ON ss.filme_id = f.filme_id
-WHERE DATE(ss.data_hora) = '2025-07-10'
-ORDER BY c.nome_fantasia, horario;
-
--- 11. Encontrar o filme com a maior duração
-SELECT
-    titulo_portugues,
-    duracao_minutos
-FROM Filme
-ORDER BY duracao_minutos DESC
-LIMIT 1;

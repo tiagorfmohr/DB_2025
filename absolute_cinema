@@ -1,3 +1,9 @@
+https://github.com/tiagorfmohr/DB_2025/blob/main/Captura%20de%20tela%202025-07-01%20211952.png
+
+
+
+
+
 -- Criação do banco de dados
 CREATE DATABASE ControleCinemas3;
 USE ControleCinemas3;

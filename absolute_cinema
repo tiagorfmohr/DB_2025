@@ -1,6 +1,6 @@
 -- Criação do banco de dados
-CREATE DATABASE ControleCinemas;
-USE ControleCinemas;
+CREATE DATABASE ControleCinemas3;
+USE ControleCinemas3;
 
 -- Tabela de Cinemas
 CREATE TABLE Cinema (
@@ -83,6 +83,50 @@ CREATE TABLE Sessao (
     FOREIGN KEY (sala_id) REFERENCES Sala(sala_id)
 );
 
+-- Tabela de Clientes (nova tabela para reservas)
+CREATE TABLE Cliente (
+    cliente_id INT PRIMARY KEY AUTO_INCREMENT,
+    nome VARCHAR(100) NOT NULL,
+    cpf VARCHAR(14) UNIQUE,
+    email VARCHAR(100),
+    telefone VARCHAR(20),
+    data_cadastro DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabela de Reservas (nova tabela)
+CREATE TABLE Reserva (
+    reserva_id INT PRIMARY KEY AUTO_INCREMENT,
+    sessao_id INT NOT NULL,
+    cliente_id INT NOT NULL,
+    data_reserva DATETIME DEFAULT CURRENT_TIMESTAMP,
+    quantidade_ingressos INT NOT NULL,
+    valor_total DECIMAL(10,2) NOT NULL,
+    status ENUM('Pendente', 'Confirmada', 'Cancelada', 'Utilizada') DEFAULT 'Confirmada',
+    codigo_reserva VARCHAR(20) UNIQUE,
+    FOREIGN KEY (sessao_id) REFERENCES Sessao(sessao_id),
+    FOREIGN KEY (cliente_id) REFERENCES Cliente(cliente_id)
+);
+
+-- Tabela de Tipos de Ingresso (nova tabela)
+CREATE TABLE TipoIngresso (
+    tipo_ingresso_id INT PRIMARY KEY AUTO_INCREMENT,
+    nome VARCHAR(50) NOT NULL,
+    descricao TEXT,
+    percentual_acrescimo DECIMAL(5,2) DEFAULT 0.00
+);
+
+-- Tabela de Ingressos (nova tabela)
+CREATE TABLE Ingresso (
+    ingresso_id INT PRIMARY KEY AUTO_INCREMENT,
+    reserva_id INT NOT NULL,
+    tipo_ingresso_id INT NOT NULL,
+    valor_pago DECIMAL(10,2) NOT NULL,
+    codigo_barras VARCHAR(50) UNIQUE,
+    utilizado BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (reserva_id) REFERENCES Reserva(reserva_id),
+    FOREIGN KEY (tipo_ingresso_id) REFERENCES TipoIngresso(tipo_ingresso_id)
+);
+
 -- Inserção de dados nas tabelas
 
 -- Cinemas
@@ -157,64 +201,111 @@ INSERT INTO Sessao (filme_id, sala_id, data_hora, valor_ingresso, idioma, tipo_e
 (3, 8, '2023-06-20 18:00:00', 22.00, 'Dublado', '3D'),
 (3, 9, '2023-06-20 21:00:00', 40.00, 'Legendado', 'VIP');
 
--- 1. Listar todas as sessões de um cinema específico com detalhes do filme
+-- Tipos de Ingresso
+INSERT INTO TipoIngresso (nome, descricao, percentual_acrescimo) VALUES
+('Inteira', 'Ingresso padrão', 0.00),
+('Meia-entrada', 'Para estudantes, idosos e outras categorias com direito', -50.00),
+('VIP', 'Assentos premium com maior conforto', 30.00),
+('Promocional', 'Ingressos com desconto promocional', -20.00);
+
+-- Clientes
+INSERT INTO Cliente (nome, cpf, email, telefone) VALUES
+('João Silva', '123.456.789-00', 'joao.silva@email.com', '(51) 99999-9999'),
+('Maria Oliveira', '987.654.321-00', 'maria.oliveira@email.com', '(51) 98888-8888'),
+('Carlos Souza', '456.789.123-00', 'carlos.souza@email.com', '(51) 97777-7777');
+
+-- Reservas
+INSERT INTO Reserva (sessao_id, cliente_id, quantidade_ingressos, valor_total, status, codigo_reserva) VALUES
+(1, 1, 2, 70.00, 'Confirmada', 'RES123456'),
+(2, 2, 4, 112.00, 'Confirmada', 'RES654321'),
+(3, 3, 1, 25.00, 'Confirmada', 'RES789012');
+
+-- Ingressos
+INSERT INTO Ingresso (reserva_id, tipo_ingresso_id, valor_pago, codigo_barras) VALUES
+(1, 1, 35.00, 'ING12345678901'),
+(1, 1, 35.00, 'ING12345678902'),
+(2, 2, 14.00, 'ING23456789012'),
+(2, 2, 14.00, 'ING23456789013'),
+(2, 2, 14.00, 'ING23456789014'),
+(2, 2, 14.00, 'ING23456789015'),
+(3, 1, 25.00, 'ING34567890123');
+
+-- Consultas adicionais para o sistema de reservas
+
+-- 6. Listar todas as reservas de um cliente específico
+SELECT 
+    c.nome AS cliente,
+    f.titulo_portugues AS filme,
+    s.data_hora,
+    cin.nome_fantasia AS cinema,
+    sal.numero AS sala,
+    r.quantidade_ingressos,
+    r.valor_total,
+    r.status,
+    r.codigo_reserva
+FROM Reserva r
+JOIN Cliente c ON r.cliente_id = c.cliente_id
+JOIN Sessao s ON r.sessao_id = s.sessao_id
+JOIN Filme f ON s.filme_id = f.filme_id
+JOIN Sala sal ON s.sala_id = sal.sala_id
+JOIN Cinema cin ON sal.cinema_id = cin.cinema_id
+WHERE c.cliente_id = 1;
+
+-- 7. Verificar disponibilidade de assentos em uma sessão
+SELECT 
+    s.capacidade AS capacidade_total,
+    IFNULL(SUM(r.quantidade_ingressos), 0) AS ingressos_vendidos,
+    (s.capacidade - IFNULL(SUM(r.quantidade_ingressos), 0)) AS lugares_disponiveis
+FROM Sessao ss
+JOIN Sala s ON ss.sala_id = s.sala_id
+LEFT JOIN Reserva r ON ss.sessao_id = r.sessao_id AND r.status != 'Cancelada'
+WHERE ss.sessao_id = 1
+GROUP BY s.capacidade;
+
+-- 8. Relatório de vendas por cinema
 SELECT 
     c.nome_fantasia AS cinema,
-    s.numero AS sala,
+    COUNT(r.reserva_id) AS total_reservas,
+    SUM(r.quantidade_ingressos) AS total_ingressos,
+    SUM(r.valor_total) AS receita_total
+FROM Reserva r
+JOIN Sessao s ON r.sessao_id = s.sessao_id
+JOIN Sala sa ON s.sala_id = sa.sala_id
+JOIN Cinema c ON sa.cinema_id = c.cinema_id
+WHERE r.status != 'Cancelada'
+GROUP BY c.cinema_id
+ORDER BY receita_total DESC;
+
+-- 9. Detalhes de um ingresso específico
+SELECT 
+    i.codigo_barras,
     f.titulo_portugues AS filme,
     ss.data_hora,
-    ss.valor_ingresso,
-    ss.idioma,
-    ss.tipo_exibicao
-FROM Sessao ss
-JOIN Sala s ON ss.sala_id = s.sala_id
-JOIN Cinema c ON s.cinema_id = c.cinema_id
+    cin.nome_fantasia AS cinema,
+    sal.numero AS sala,
+    ti.nome AS tipo_ingresso,
+    i.valor_pago,
+    cl.nome AS cliente,
+    i.utilizado
+FROM Ingresso i
+JOIN Reserva r ON i.reserva_id = r.reserva_id
+JOIN Sessao ss ON r.sessao_id = ss.sessao_id
 JOIN Filme f ON ss.filme_id = f.filme_id
-WHERE c.cinema_id = 1
-ORDER BY ss.data_hora;
+JOIN Sala sal ON ss.sala_id = sal.sala_id
+JOIN Cinema cin ON sal.cinema_id = cin.cinema_id
+JOIN TipoIngresso ti ON i.tipo_ingresso_id = ti.tipo_ingresso_id
+JOIN Cliente cl ON r.cliente_id = cl.cliente_id
+WHERE i.ingresso_id = 1;
 
--- 2. Listar todos os filmes de um determinado gênero com seus diretores
+-- 10. Filmes mais populares por número de ingressos vendidos
 SELECT 
     f.titulo_portugues AS filme,
-    p.nome AS diretor,
-    f.duracao_minutos,
-    f.classificacao
-FROM Filme f
-JOIN Pessoa p ON f.diretor_id = p.pessoa_id
-JOIN FilmeGenero fg ON f.filme_id = fg.filme_id
-JOIN Genero g ON fg.genero_id = g.genero_id
-WHERE g.nome = 'Drama'
-ORDER BY f.titulo_portugues;
-
--- 3. Listar todos os atores que trabalharam com um diretor específico
-SELECT DISTINCT
-    p.nome AS ator,
-    f.titulo_portugues AS filme,
-    dir.nome AS diretor
-FROM Elenco e
-JOIN Pessoa p ON e.ator_id = p.pessoa_id
-JOIN Filme f ON e.filme_id = f.filme_id
-JOIN Pessoa dir ON f.diretor_id = dir.pessoa_id
-WHERE dir.nome = 'Christopher Nolan';
-
--- 4. Calcular a receita potencial máxima por cinema (considerando lotação máxima)
-SELECT 
-    c.nome_fantasia AS cinema,
-    SUM(s.capacidade * ss.valor_ingresso) AS receita_potencial_maxima
-FROM Sessao ss
-JOIN Sala s ON ss.sala_id = s.sala_id
-JOIN Cinema c ON s.cinema_id = c.cinema_id
-GROUP BY c.cinema_id
-ORDER BY receita_potencial_maxima DESC;
-
--- 5. Listar filmes com mais de um gênero
-SELECT 
-    f.titulo_portugues AS filme,
-    GROUP_CONCAT(g.nome SEPARATOR ', ') AS generos,
-    COUNT(g.genero_id) AS qtd_generos
-FROM Filme f
-JOIN FilmeGenero fg ON f.filme_id = fg.filme_id
-JOIN Genero g ON fg.genero_id = g.genero_id
+    COUNT(i.ingresso_id) AS total_ingressos_vendidos,
+    SUM(i.valor_pago) AS receita_total
+FROM Ingresso i
+JOIN Reserva r ON i.reserva_id = r.reserva_id
+JOIN Sessao s ON r.sessao_id = s.sessao_id
+JOIN Filme f ON s.filme_id = f.filme_id
+WHERE r.status != 'Cancelada'
 GROUP BY f.filme_id
-HAVING qtd_generos > 1
-ORDER BY qtd_generos DESC;
+ORDER BY total_ingressos_vendidos DESC;
